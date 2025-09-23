@@ -65,25 +65,35 @@ class Circle:
             self.vbo.write(self.vertices.tobytes())
     
     def set_mass(self, mass: float):
-        """Update the circle's mass"""
-        self.mass = mass
+        """Update the circle's mass with bounds checking"""
+        # Define the same functional limits here for safety
+        min_functional_mass = 6955853334920127850909532160.0
+        max_functional_mass = 2565279514737350405865106046976.0
+        
+        # Clamp the mass to functional limits
+        clamped_mass = max(min_functional_mass, min(mass, max_functional_mass))
+        self.mass = clamped_mass
         
     def get_gravitational_effect(self, x: float, y: float) -> float:
         """
         Calculate the gravitational effect at a given point (x, y).
         Returns the curvature/displacement based on distance and mass.
-        Uses a simplified model: effect = mass / (distance^2 + smoothing_factor)
+        Uses modified inverse-square law with extended range for better visualization.
         """
         dx = x - self.x
         dy = y - self.y
-        distance_squared = dx * dx + dy * dy
+        distance = np.sqrt(dx * dx + dy * dy)
         
         # Add smoothing factor to avoid singularity at the center
-        smoothing_factor = 0.01
+        smoothing_factor = 0.05
         
-        # Gravitational effect (simplified)
-        # You can adjust the scaling factor to make the effect more or less pronounced
-        scaling_factor = 0.1
-        effect = scaling_factor * self.mass / (distance_squared + smoothing_factor)
+        # Modified gravitational effect with extended range
+        # Uses distance instead of distance_squared for wider effect range
+        # Still physically motivated but adjusted for visualization
+        scaling_factor = 0.15  # Increased for wider visible range
+        
+        # Use a softer falloff: 1/(distance + smoothing) instead of 1/distance²
+        # This gives a wider range of visible deformation
+        effect = scaling_factor * self.mass / (1e30 * (distance + smoothing_factor))
         
         return effect

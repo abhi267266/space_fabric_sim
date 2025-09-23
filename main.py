@@ -25,12 +25,22 @@ def main():
     fabric = SpaceFabric(rows=25, cols=25)  # Higher resolution for better physics visualization
     fabric.setup_vao(ctx, program)
 
-    # --- SUN (with realistic mass) ---
+    # --- SUN (with realistic mass properly scaled for visualization) ---
     sun_radius = 0.15
     sun_color = (1.0, 1.0, 0.0, 0.8)  # Yellow with transparency
-    # Using a scaled-down version of the sun's actual mass for visual effect
-    # Real sun mass ≈ 2 × 10^30 kg, scaled down for visualization
-    sun_mass = 50.0  # Adjust this value to control the gravitational effect strength
+    
+    # Real sun mass: 1.989 × 10^30 kg
+    # Define functional mass limits based on actual fabric response
+    real_sun_mass = 1.989e30  # kg (actual sun mass)
+    min_star_mass = 6955853334920127850909532160.0  # Minimum mass where fabric responds
+    max_star_mass = 2565279514737350405865106046976.0  # Maximum mass where fabric responds
+    
+    # Start with real mass but clamp it to functional range
+    sun_mass = max(min_star_mass, min(real_sun_mass, max_star_mass))
+    
+    print(f"Real Sun mass: {real_sun_mass:.3e} kg")
+    print(f"Starting Sun mass: {sun_mass:.3e} kg (clamped to functional range)")
+    print(f"Functional mass range: {min_star_mass:.3e} - {max_star_mass:.3e} kg")
     
     sun = Circle(0.0, 0.0, sun_radius, sun_color, mass=sun_mass, segments=128, aspect_ratio=aspect_ratio)
     sun.setup_vao(ctx, program)
@@ -75,8 +85,10 @@ def main():
         # --- RENDERING ---
         ctx.clear(0.0, 0.0, 0.05)  # Very dark blue background for space effect
 
-
+        # Draw Sun first (appears on top)
         sun.draw(ctx)
+
+        # Then draw background fabric (appears behind)
         fabric.draw(ctx)
 
         # Optional: Draw additional objects

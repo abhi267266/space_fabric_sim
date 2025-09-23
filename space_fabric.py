@@ -74,7 +74,7 @@ class SpaceFabric:
     def update_fabric_deformation(self):
         """
         Update the fabric deformation based on all gravitational bodies.
-        This simulates how mass curves spacetime.
+        This simulates how mass curves spacetime while keeping fabric coverage.
         """
         if self.original_vertices is None:
             return
@@ -87,6 +87,7 @@ class SpaceFabric:
             if hasattr(body, 'get_gravitational_effect') and hasattr(body, 'mass'):
                 for i in range(len(self.vertices)):
                     x, y = self.vertices[i, 0], self.vertices[i, 1]
+                    orig_x, orig_y = self.original_vertices[i, 0], self.original_vertices[i, 1]
                     
                     # Get gravitational effect at this point
                     effect = body.get_gravitational_effect(x, y)
@@ -102,11 +103,23 @@ class SpaceFabric:
                         dy /= distance
                         
                         # Apply deformation (pulling vertices towards the massive object)
-                        # The effect diminishes with distance
-                        deformation_strength = min(effect, 0.1)  # Cap the maximum deformation
+                        deformation_strength = min(effect, 0.3)
                         
-                        self.vertices[i, 0] += dx * deformation_strength
-                        self.vertices[i, 1] += dy * deformation_strength
+                        new_x = self.vertices[i, 0] + dx * deformation_strength
+                        new_y = self.vertices[i, 1] + dy * deformation_strength
+                        
+                        # Prevent vertices from moving inward beyond window boundaries
+                        # Keep the fabric coverage by limiting inward movement
+                        if abs(orig_x) > 1.0 or abs(orig_y) > 1.0:  # Edge vertices
+                            # For edge vertices, only allow outward movement or limited inward movement
+                            if abs(new_x) >= abs(orig_x) * 0.9:  # Don't shrink more than 10%
+                                self.vertices[i, 0] = new_x
+                            if abs(new_y) >= abs(orig_y) * 0.9:  # Don't shrink more than 10%
+                                self.vertices[i, 1] = new_y
+                        else:
+                            # Interior vertices can move freely
+                            self.vertices[i, 0] = new_x
+                            self.vertices[i, 1] = new_y
 
     def setup_vao(self, ctx: moderngl.Context, program: moderngl.Program):
         """
