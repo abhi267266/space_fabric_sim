@@ -3,7 +3,7 @@ import moderngl
 
 from setup_win import setup_pygame_opengl
 from shaders import create_shaders
-from shapes.circle import Circle
+from shapes.circle import Circle, color_from_temperature, temperature_from_mass
 from space_fabric import SpaceFabric
 
 # --- SETUP ---
@@ -25,8 +25,8 @@ def init_fabric(ctx, program):
 
 def init_sun(ctx, program, aspect_ratio):
     sun_radius = 0.1
-    sun_color = (1.0, 1.0, 0.0, 0.8)  # yellow
     real_sun_mass = 1.989e30
+    sun_color = color_from_temperature(temperature_from_mass(real_sun_mass))  # yellow
 
     print(f"Real Sun mass: {real_sun_mass:.3e} kg")
 

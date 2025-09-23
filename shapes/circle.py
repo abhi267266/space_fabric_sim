@@ -2,6 +2,35 @@
 import numpy as np
 import moderngl
 
+
+def temperature_from_mass(mass, sun_mass=1.989e30):
+    """Estimate surface temperature of a star from mass (very rough)."""
+    # Normalize to solar mass
+    m = mass / sun_mass
+    # T ~ M^0.505, clamp range
+    temp = 5778 * (m ** 0.505)
+    return max(3000, min(30000, temp))
+
+
+def color_from_temperature(temp):
+    """Approximate star color from temperature (K)."""
+    print(temp)
+    if temp > 20000:   # O-type
+        return (0.6, 0.7, 1.0, 0.8)
+    elif temp > 10000: # B-type
+        return (0.6, 0.6, 1.0, 0.8)
+    elif temp > 7500:  # A-type
+        return (0.7, 0.7, 0.9, 0.8)
+    elif temp > 6000:  # F-type
+        return (1.0, 0.9, 0.7, 0.8)
+    elif temp > 5200:  # G-type (Sun)
+        return (1.0, 0.95, 0.4, 0.8)
+    elif temp > 3700:  # K-type
+        return (1.0, 0.4, 0.4, 0.8)
+    else:              # M-type (red dwarf)
+        return (1.0, 0.0, 0.0, 0.8)
+
+
 class Circle:
     def __init__(self, x: float, y: float, radius: float, color: tuple, mass: float = 1.0, segments: int = 64, aspect_ratio: float = 1.0):
         self.x = x
@@ -79,6 +108,11 @@ class Circle:
         scale_factor = 0.6  # how much radius changes relative to base radius
         mass_ratio = (self.mass - min_mass) / (max_mass - min_mass)
         self.radius = self.base_radius * (1 + scale_factor * mass_ratio)
+
+
+        #Change color acording to the mass
+        temp = temperature_from_mass(self.mass, solar_mass)
+        self.color = color_from_temperature(temp)
 
         # Regenerate vertices and update GPU buffer
         self.vertices, self.indices = self._generate_vertices()
