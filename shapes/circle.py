@@ -65,20 +65,20 @@ class Circle:
             self.vbo.write(self.vertices.tobytes())
     
     def set_mass(self, mass: float):
-        """Update the circle's mass with bounds checking"""
-        # Define the same functional limits here for safety
-        min_functional_mass = 6955853334920127850909532160.0
-        max_functional_mass = 2565279514737350405865106046976.0
+        """Update the circle's mass with physically meaningful bounds for main sequence stars"""
+        # Main sequence star range: 0.5 to 8 solar masses
+        solar_mass = 1.989e30  # kg
+        min_main_sequence = 0.5 * solar_mass  # Red dwarf minimum
+        max_main_sequence = 8.0 * solar_mass  # Massive star maximum
         
-        # Clamp the mass to functional limits
-        clamped_mass = max(min_functional_mass, min(mass, max_functional_mass))
+        # Clamp the mass to main sequence star limits
+        clamped_mass = max(min_main_sequence, min(mass, max_main_sequence))
         self.mass = clamped_mass
         
     def get_gravitational_effect(self, x: float, y: float) -> float:
         """
         Calculate the gravitational effect at a given point (x, y).
-        Returns the curvature/displacement based on distance and mass.
-        Uses modified inverse-square law with extended range for better visualization.
+        Uses physically-based scaling appropriate for main sequence stars.
         """
         dx = x - self.x
         dy = y - self.y
@@ -87,13 +87,15 @@ class Circle:
         # Add smoothing factor to avoid singularity at the center
         smoothing_factor = 0.05
         
-        # Modified gravitational effect with extended range
-        # Uses distance instead of distance_squared for wider effect range
-        # Still physically motivated but adjusted for visualization
-        scaling_factor = 0.15  # Increased for wider visible range
+        # Gravitational effect scaled for main sequence stars (0.5☉ - 8☉)
+        # Use solar mass as reference for scaling
+        solar_mass = 1.989e30
+        mass_in_solar_units = self.mass / solar_mass
         
-        # Use a softer falloff: 1/(distance + smoothing) instead of 1/distance²
-        # This gives a wider range of visible deformation
-        effect = scaling_factor * self.mass / (1e30 * (distance + smoothing_factor))
+        # Scale effect based on solar mass ratio with good visualization range
+        scaling_factor = 0.08 * mass_in_solar_units  # Proportional to actual mass
+        
+        # Use softer falloff for wider visible range
+        effect = scaling_factor / (distance + smoothing_factor)
         
         return effect

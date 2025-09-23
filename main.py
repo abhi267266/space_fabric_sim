@@ -32,15 +32,12 @@ def main():
     # Real sun mass: 1.989 × 10^30 kg
     # Define functional mass limits based on actual fabric response
     real_sun_mass = 1.989e30  # kg (actual sun mass)
-    min_star_mass = 6955853334920127850909532160.0  # Minimum mass where fabric responds
-    max_star_mass = 2565279514737350405865106046976.0  # Maximum mass where fabric responds
     
     # Start with real mass but clamp it to functional range
-    sun_mass = max(min_star_mass, min(real_sun_mass, max_star_mass))
+    sun_mass = real_sun_mass
     
     print(f"Real Sun mass: {real_sun_mass:.3e} kg")
     print(f"Starting Sun mass: {sun_mass:.3e} kg (clamped to functional range)")
-    print(f"Functional mass range: {min_star_mass:.3e} - {max_star_mass:.3e} kg")
     
     sun = Circle(0.0, 0.0, sun_radius, sun_color, mass=sun_mass, segments=128, aspect_ratio=aspect_ratio)
     sun.setup_vao(ctx, program)
