@@ -6,6 +6,7 @@ class Circle:
     def __init__(self, x: float, y: float, radius: float, color: tuple, mass: float = 1.0, segments: int = 64, aspect_ratio: float = 1.0):
         self.x = x
         self.y = y
+        self.base_radius = radius  # Store initial radius
         self.radius = radius
         self.color = color
         self.mass = mass  # Mass property for gravitational effects
@@ -65,16 +66,25 @@ class Circle:
             self.vbo.write(self.vertices.tobytes())
     
     def set_mass(self, mass: float):
-        """Update the circle's mass with physically meaningful bounds for main sequence stars"""
-        # Main sequence star range: 0.5 to 8 solar masses
-        solar_mass = 1.989e30  # kg
-        min_main_sequence = 0.5 * solar_mass  # Red dwarf minimum
-        max_main_sequence = 8.0 * solar_mass  # Massive star maximum
-        
-        # Clamp the mass to main sequence star limits
-        clamped_mass = max(min_main_sequence, min(mass, max_main_sequence))
-        self.mass = clamped_mass
-        
+        """Update the circle's mass with limits and scale radius slightly for visualization"""
+        # Main sequence star mass limits
+        solar_mass = 1.989e30
+        min_mass = 0.5 * solar_mass
+        max_mass = 8.0 * solar_mass
+
+        # Clamp the mass
+        self.mass = max(min_mass, min(mass, max_mass))
+
+        # Optional: scale radius slightly based on mass change (relative to base_radius)
+        scale_factor = 0.6  # how much radius changes relative to base radius
+        mass_ratio = (self.mass - min_mass) / (max_mass - min_mass)
+        self.radius = self.base_radius * (1 + scale_factor * mass_ratio)
+
+        # Regenerate vertices and update GPU buffer
+        self.vertices, self.indices = self._generate_vertices()
+        if self.vbo:
+            self.vbo.write(self.vertices.tobytes())
+
     def get_gravitational_effect(self, x: float, y: float) -> float:
         """
         Calculate the gravitational effect at a given point (x, y).
