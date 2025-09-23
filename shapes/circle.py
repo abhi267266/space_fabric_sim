@@ -3,7 +3,7 @@ import numpy as np
 import moderngl
 
 class Circle:
-    def __init__(self, x: float, y: float, radius: float, color: tuple, segments: int = 64, aspect_ratio:float = 1):
+    def __init__(self, x: float, y: float, radius: float, color: tuple, segments: int = 64, aspect_ratio: float = 1.0):
         self.x = x
         self.y = y
         self.radius = radius
@@ -13,19 +13,18 @@ class Circle:
 
         # Generate vertex and index data
         self.vertices, self.indices = self._generate_vertices()
-        self.vao = None  # Will store the VAO after setup
-        # ✅ store buffers separately
+
+        # ModernGL resources
         self.vbo = None
         self.ibo = None
-        self.vy = 0.0
-        self.vx = 0.0
+        self.vao = None
 
     def _generate_vertices(self):
-        vertices = []
-        vertices.append([self.x, self.y, *self.color])
+        """Generate vertex and index data for a circle (triangle fan)"""
+        vertices = [[self.x, self.y, *self.color]]  # center
         for i in range(self.segments + 1):
             angle = 2 * np.pi * i / self.segments
-            ex = self.x + self.radius * np.cos(angle)/ self.aspect_ratio
+            ex = self.x + self.radius * np.cos(angle) / self.aspect_ratio
             ey = self.y + self.radius * np.sin(angle)
             vertices.append([ex, ey, *self.color])
 
@@ -36,49 +35,30 @@ class Circle:
         return np.array(vertices, dtype=np.float32), np.array(indices, dtype=np.uint32)
 
     def setup_vao(self, ctx: moderngl.Context, program: moderngl.Program):
-        """
-        Create ModernGL buffers and VAO using the provided context and shader program
-        """
+        """Create ModernGL buffers and VAO using the provided context and shader program"""
         self.vbo = ctx.buffer(self.vertices.tobytes())
         self.ibo = ctx.buffer(self.indices.tobytes())
         self.vao = ctx.vertex_array(program, [(self.vbo, '2f 3f', 'position', 'color')], self.ibo)
 
     def draw(self, ctx=None):
+        """Render the circle if VAO is set up"""
         if self.vao is None:
-            print(f"Circle VAO not set up yet!")
+            print("Circle VAO not set up yet!")
             return
         self.vao.render()
 
-
-    def update_position(self, dx=0.0, dy=0.0):
-        """Move circle and enforce borders"""
-        self.x += dx
-        self.y += dy
-
-        # --- BORDER LOGIC ---
-        # Horizontal bounds
-        if self.x - self.radius < -1.0:
-            self.x = -1.0 + self.radius
-            self.vx *= -1  # bounce
-        elif self.x + self.radius > 1.0:
-            self.x = 1.0 - self.radius
-            self.vx *= -1
-
-        # Vertical bounds
-        if self.y - self.radius < -1.0:
-            self.y = -1.0 + self.radius
-            self.vy *= -1
-        elif self.y + self.radius > 1.0:
-            self.y = 1.0 - self.radius
-            self.vy *= -1
-
-        # Regenerate vertices and update GPU
-        self.vertices, _ = self._generate_vertices()
-        if self.vbo:
-            self.vbo.write(self.vertices.tobytes())
-
     def set_position(self, x: float, y: float):
+        """Update the circle's position"""
         self.x = x
         self.y = y
         self.vertices, self.indices = self._generate_vertices()
-        # If VAO already exists, you would need to update the VBO here
+        if self.vbo:
+            self.vbo.write(self.vertices.tobytes())
+
+    def set_color(self, color: tuple):
+        """Update the circle's color"""
+        self.color = color
+        # regenerate vertices with new color
+        self.vertices, self.indices = self._generate_vertices()
+        if self.vbo:
+            self.vbo.write(self.vertices.tobytes())

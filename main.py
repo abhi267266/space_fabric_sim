@@ -55,7 +55,6 @@ def main():
     clock = pygame.time.Clock()
     running = True
 
-    downward_speed = -0.01  # negative because OpenGL Y+ is upward
 
     while running:
         for event in pygame.event.get():
@@ -64,10 +63,6 @@ def main():
             elif event.type == KEYDOWN and event.key == K_ESCAPE:
                 running = False
 
-        # Move circle downward
-        circle.vx = 0.0
-        circle.vy = downward_speed
-        circle.update_position(circle.vx, circle.vy)  # update vertices and VBO internally
 
         # Clear screen and draw
         ctx.clear(0.0, 0.0, 0.0)
