@@ -18,6 +18,7 @@ class Circle:
         self.vbo = None
         self.ibo = None
         self.vy = 0.0
+        self.vx = 0.0
 
     def _generate_vertices(self):
         vertices = []
@@ -49,9 +50,29 @@ class Circle:
         self.vao.render()
 
 
-    def update_position(self, dy):
-        """Move circle vertically by dy and update vertices"""
+    def update_position(self, dx=0.0, dy=0.0):
+        """Move circle and enforce borders"""
+        self.x += dx
         self.y += dy
+
+        # --- BORDER LOGIC ---
+        # Horizontal bounds
+        if self.x - self.radius < -1.0:
+            self.x = -1.0 + self.radius
+            self.vx *= -1  # bounce
+        elif self.x + self.radius > 1.0:
+            self.x = 1.0 - self.radius
+            self.vx *= -1
+
+        # Vertical bounds
+        if self.y - self.radius < -1.0:
+            self.y = -1.0 + self.radius
+            self.vy *= -1
+        elif self.y + self.radius > 1.0:
+            self.y = 1.0 - self.radius
+            self.vy *= -1
+
+        # Regenerate vertices and update GPU
         self.vertices, _ = self._generate_vertices()
         if self.vbo:
             self.vbo.write(self.vertices.tobytes())
