@@ -3,71 +3,47 @@ import pygame
 import moderngl
 from pygame.locals import *
 
+from setup_win import setup_pygame_opengl
 from shapes.circle import Circle
 from shaders import create_shaders
-
-
-def setup_pygame_opengl():
-    """Initialize pygame and set up OpenGL context with MSAA"""
-    pygame.init()
-    
-    pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MAJOR_VERSION, 3)
-    pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MINOR_VERSION, 3)
-    pygame.display.gl_set_attribute(pygame.GL_CONTEXT_PROFILE_MASK, pygame.GL_CONTEXT_PROFILE_CORE)
-
-    pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLEBUFFERS, 1)
-    pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLESAMPLES, 4)  # 4x MSAA
-    
-    width, height = 800, 600
-    screen = pygame.display.set_mode((width, height), OPENGL | DOUBLEBUF)
-    pygame.display.set_caption("ModernGL Circle - Smooth Edges with MSAA")
-    
-    return screen, width, height
-
-
-def setup_gpu_resources(ctx, aspect_ratio):
-    """Set up GPU resources using the Circle class"""
-    
-    # 1️⃣ Create shader program
-    vertex_shader, fragment_shader = create_shaders()
-    program = ctx.program(vertex_shader=vertex_shader, fragment_shader=fragment_shader)
-    
-    # 2️⃣ Create Circle instance at center with white color
-    circle = Circle(x=0.0, y=0.0, radius=0.1, color=(1.0, 1.0, 1.0), aspect_ratio=aspect_ratio)
-    
-    # 3️⃣ Setup VAO for the circle
-    circle.setup_vao(ctx, program)
-    
-    return circle
+from space_fabric import SpaceFabric  # import your space fabric class
 
 
 def main():
-    """Main function that runs the application"""
     screen, width, height = setup_pygame_opengl()
-    aspect_ratio = width / height
-    
     ctx = moderngl.create_context()
     ctx.enable(moderngl.DEPTH_TEST)
+    aspect_ratio = width / height
 
-    # Create the Circle instance with VAO
-    circle = setup_gpu_resources(ctx, aspect_ratio)
-    
+    # --- SHADERS ---
+    vertex_shader, fragment_shader = create_shaders()
+    program = ctx.program(vertex_shader=vertex_shader, fragment_shader=fragment_shader)
+
+    # --- SPACE FABRIC (grid) ---
+    fabric = SpaceFabric(rows=20, cols=20)  # define a 20x20 grid
+    fabric.setup_vao(ctx, program)
+
+    # --- SUN ---
+    sun_radius = 0.2
+    sun_color = (1.0, 1.0, 0.0)  # Yellow
+    sun = Circle(0.0, 0.0, sun_radius, sun_color, segments=128, aspect_ratio=aspect_ratio)
+    sun.setup_vao(ctx, program)
+
     clock = pygame.time.Clock()
     running = True
-
-
     while running:
         for event in pygame.event.get():
-            if event.type == QUIT:
-                running = False
-            elif event.type == KEYDOWN and event.key == K_ESCAPE:
+            if event.type == pygame.QUIT:
                 running = False
 
+        ctx.clear(0.0, 0.0, 0.0)  # black background
 
-        # Clear screen and draw
-        ctx.clear(0.0, 0.0, 0.0)
-        circle.draw(ctx)
-        
+
+        # Draw the Sun on top
+        sun.draw(ctx)
+        # Draw fabric first (grid)
+        fabric.draw(ctx)
+
         pygame.display.flip()
         clock.tick(60)
 
