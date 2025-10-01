@@ -78,21 +78,22 @@ class Circle:
             return
         self.vao.render()
 
+    def _update_vertex_buffer(self):
+        """Helper method to update the vertex buffer without recreating it"""
+        if self.vbo:
+            self.vertices, self.indices = self._generate_vertices()
+            self.vbo.write(self.vertices.tobytes())
+
     def set_position(self, x: float, y: float):
         """Update the circle's position"""
         self.x = x
         self.y = y
-        self.vertices, self.indices = self._generate_vertices()
-        if self.vbo:
-            self.vbo.write(self.vertices.tobytes())
+        self._update_vertex_buffer()
 
     def set_color(self, color: tuple):
         """Update the circle's color"""
         self.color = color
-        # regenerate vertices with new color
-        self.vertices, self.indices = self._generate_vertices()
-        if self.vbo:
-            self.vbo.write(self.vertices.tobytes())
+        self._update_vertex_buffer()
     
     def set_mass(self, mass: float):
         """Update the circle's mass with limits and scale radius slightly for visualization"""
@@ -109,15 +110,12 @@ class Circle:
         mass_ratio = (self.mass - min_mass) / (max_mass - min_mass)
         self.radius = self.base_radius * (1 + scale_factor * mass_ratio)
 
-
-        #Change color acording to the mass
+        # Change color according to the mass
         temp = temperature_from_mass(self.mass, solar_mass)
         self.color = color_from_temperature(temp)
 
-        # Regenerate vertices and update GPU buffer
-        self.vertices, self.indices = self._generate_vertices()
-        if self.vbo:
-            self.vbo.write(self.vertices.tobytes())
+        # Update vertex buffer
+        self._update_vertex_buffer()
 
     def get_gravitational_effect(self, x: float, y: float) -> float:
         """

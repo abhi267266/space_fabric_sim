@@ -43,8 +43,78 @@ def init_sun(ctx, program, aspect_ratio):
 
 
 # --- INPUT HANDLING ---
-def handle_input(event, sun, fabric):
-    if event.type == pygame.KEYDOWN:
+def screen_to_ndc(screen_x, screen_y, width, height, aspect_ratio):
+    """Convert screen coordinates to normalized device coordinates (-1 to 1)"""
+    # Convert to NDC
+    ndc_x = (screen_x / width) * 2 - 1
+    ndc_y = 1 - (screen_y / height) * 2
+    # Adjust x for aspect ratio
+    ndc_x *= aspect_ratio
+    return ndc_x, ndc_y
+
+def is_point_in_circle(px, py, circle):
+    """Check if point (px, py) is inside the circle"""
+    dx = px - circle.x
+    dy = py - circle.y
+    distance = (dx * dx + dy * dy) ** 0.5
+    return distance <= circle.radius
+
+def handle_mouse_down(pos, sun, width, height, aspect_ratio):
+    """Handle mouse button down event"""
+    mouse_x, mouse_y = pos
+    ndc_x, ndc_y = screen_to_ndc(mouse_x, mouse_y, width, height, aspect_ratio)
+    
+    # Check if click is inside the sun
+    if is_point_in_circle(ndc_x, ndc_y, sun):
+        return True
+    return False
+
+def handle_mouse_motion(pos, sun, fabric, width, height, aspect_ratio):
+    """Handle mouse motion when dragging"""
+    mouse_x, mouse_y = pos
+    ndc_x, ndc_y = screen_to_ndc(mouse_x, mouse_y, width, height, aspect_ratio)
+    
+    # The radius is already scaled by aspect_ratio in the circle's vertex generation
+    # So we need to account for that when calculating boundaries
+    radius_x = sun.radius
+    radius_y = sun.radius
+    
+    # Clamp position to keep circle within window borders
+    # X boundaries: NDC x is already multiplied by aspect_ratio in screen_to_ndc
+    min_x = -1.0 + radius_x
+    max_x = 1.0 - radius_x
+    ndc_x = max(min_x, min(ndc_x, max_x))
+    
+    # Y boundaries
+    min_y = -1.0 + radius_y
+    max_y = 1.0 - radius_y
+    ndc_y = max(min_y, min(ndc_y, max_y))
+    
+    # Update sun position
+    sun.set_position(ndc_x, ndc_y)
+    
+    # Update fabric deformation
+    fabric.update_fabric_deformation()
+    fabric.update_gpu_data()
+
+def handle_input(event, sun, fabric, dragging, width, height, aspect_ratio):
+    """Handle all input events"""
+    new_dragging = dragging
+    
+    if event.type == pygame.MOUSEBUTTONDOWN:
+        if event.button == 1:  # Left mouse button
+            if handle_mouse_down(event.pos, sun, width, height, aspect_ratio):
+                new_dragging = True
+    
+    elif event.type == pygame.MOUSEBUTTONUP:
+        if event.button == 1:  # Left mouse button
+            new_dragging = False
+    
+    elif event.type == pygame.MOUSEMOTION:
+        if dragging:
+            handle_mouse_motion(event.pos, sun, fabric, width, height, aspect_ratio)
+    
+    elif event.type == pygame.KEYDOWN:
         if event.key == pygame.K_UP:
             sun.set_mass(sun.mass * 1.1)
             print(f"Sun mass: {sun.mass:.2e}")
@@ -55,6 +125,8 @@ def handle_input(event, sun, fabric):
             print(f"Sun mass: {sun.mass:.2e}")
             fabric.update_fabric_deformation()
             fabric.update_gpu_data()
+    
+    return new_dragging
 
 
 # --- RENDERING ---
@@ -83,13 +155,14 @@ def main():
 
     clock = pygame.time.Clock()
     running = True
+    dragging = False
 
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             else:
-                handle_input(event, sun, fabric)
+                dragging = handle_input(event, sun, fabric, dragging, width, height, aspect_ratio)
 
         render(ctx, sun, fabric)
         clock.tick(60)
