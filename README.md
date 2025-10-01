@@ -1,5 +1,6 @@
 <p align="center">
-  <img src="assets/demo.gif" width="400"/>
+  <img src="output.gif" width="400"/>
 </p>
+
 
 
